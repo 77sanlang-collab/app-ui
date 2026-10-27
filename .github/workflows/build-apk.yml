@@ -1,0 +1,71 @@
+name: Build Parcly APK
+
+on:
+  push:
+    branches: [main]
+    paths: ['patches/**', '.github/workflows/build-apk.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: parcly-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare pinned upstream with local changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init app
+          git -C app remote add origin https://github.com/Granter-z/parcly.git
+          git -C app fetch --depth 1 origin 0e4c7739205b368ab9bed3299f963a3e6fd9cf91
+          git -C app checkout --detach FETCH_HEAD
+          git -C app apply --check ../patches/parcly.patch
+          git -C app apply ../patches/parcly.patch
+          mkdir -p dist
+          git -C app add .
+          SOURCE_TREE=$(git -C app write-tree)
+          git -C app archive --format=zip "$SOURCE_TREE" -o ../dist/parcly-test-source.zip
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.9'
+          channel: stable
+          cache: true
+      - name: Resolve packages
+        working-directory: app
+        run: flutter pub get
+      - name: Check modified pages
+        working-directory: app
+        run: flutter analyze --no-pub lib/ui/screens/login/order_entry_test_screen.dart lib/ui/screens/pdd/pdd_web_screen.dart lib/ui/screens/settings/settings_screen.dart
+      - name: Run tests
+        working-directory: app
+        run: flutter test --no-pub
+      - name: Build arm64 APK for Find X8
+        working-directory: app
+        run: flutter build apk --release --target-platform android-arm64 --no-pub
+      - name: Prepare downloads
+        run: |
+          cp app/build/app/outputs/flutter-apk/app-release.apk dist/parcly-xhs-pdd-test-arm64.apk
+          cd dist
+          sha256sum parcly-xhs-pdd-test-arm64.apk parcly-test-source.zip > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: parcly-find-x8-apk
+          path: dist/*
+          if-no-files-found: error
+      - name: Publish test download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "test-${GITHUB_RUN_NUMBER}" dist/* --target "$GITHUB_SHA" --title "Parcly ���԰� ${GITHUB_RUN_NUMBER}" --prerelease --notes-file RELEASE-NOTES.md

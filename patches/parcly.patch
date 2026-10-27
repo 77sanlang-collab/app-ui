@@ -1,0 +1,428 @@
+diff --git a/README.md b/README.md
+index 442cd7f..907492e 100644
+--- a/README.md
++++ b/README.md
+@@ -19,7 +19,7 @@ Parcly �ۺ�ƴ��ࡢ�������Ա� / ��è����ʵ�������ѡ���ȡ
+ 
+ - **����ɢ���ƽ̨**��������ƴ��ࡢ�������Ա�������ȡ����Ҳɢ�ڸ��� App �
+ - **վ��ǰ������**�����ĳ��������Ѿ�վ����վ / ��ݹ�ǰ����Ҫ���̿����룬��������ˢһ��������
+-- **ƴ���˫�˻���**���ٷ� App ���������¼���׻��ߣ�Parcly ����ƴ����ƶ����̳ǣ��ɵ����ճ���ڣ��Ӹ����ƿ����ߡ�
++- **ƴ���˫�˻���**�������̳ǿ���Ϊ�����ڣ���ٷ� App �����¼�Կ��ܵ�����һ���˳�������֤�����ͻ���ͬʱ���ߡ�
+ - **�޹ض�������**�����������͡��˿�ȡ���Ȳ��������б���
+ 
+ ---
+diff --git a/android/app/build.gradle.kts b/android/app/build.gradle.kts
+index 17a0933..207df2d 100644
+--- a/android/app/build.gradle.kts
++++ b/android/app/build.gradle.kts
+@@ -22,7 +22,7 @@ android {
+ 
+     defaultConfig {
+         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+-        applicationId = "com.example.pickup_app"
++        applicationId = "com.example.pickup_app.xhs_pdd_test"
+         // You can update the following values to match your application needs.
+         // For more information, see: https://flutter.dev/to/review-gradle-config.
+         minSdk = flutter.minSdkVersion
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+index 5785028..6fbef6c 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -5,7 +5,7 @@
+     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+     <uses-permission android:name="android.permission.VIBRATE"/>
+     <application
+-        android:label="pickup_app"
++        android:label="Parcly ���԰�"
+         android:name="${applicationName}"
+         android:usesCleartextTraffic="true"
+         android:allowBackup="false"
+diff --git a/android/gradle.properties b/android/gradle.properties
+index c6c7054..920abd0 100644
+--- a/android/gradle.properties
++++ b/android/gradle.properties
+@@ -6,3 +6,7 @@ org.gradle.caching=true
+ org.gradle.daemon=true
+ kotlin.incremental=false
+ kotlin.parallel.tasks.in.project=true
++# This builtInKotlin flag was added automatically by Flutter migrator
++android.builtInKotlin=false
++# This newDsl flag was added automatically by Flutter migrator
++android.newDsl=false
+diff --git a/lib/ui/components/platform_meta.dart b/lib/ui/components/platform_meta.dart
+index 888fe2f..e36425e 100644
+--- a/lib/ui/components/platform_meta.dart
++++ b/lib/ui/components/platform_meta.dart
+@@ -40,7 +40,7 @@ String platformSubtitle(String platform) {
+     case 'jd':
+       return '֧����Ӫ���������������������;����';
+     case 'pdd':
+-      return '���õ�¼��˫�˻��ߣ��Զ�ͬ����;������ȡ����';
++      return '������ҳͬ������ƴ���ٷ� App �����¼���ܵ�����һ���˳�';
+     default:
+       return '';
+   }
+diff --git a/lib/ui/screens/home/home_screen.dart b/lib/ui/screens/home/home_screen.dart
+index 35026b1..7defcfd 100644
+--- a/lib/ui/screens/home/home_screen.dart
++++ b/lib/ui/screens/home/home_screen.dart
+@@ -569,7 +569,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
+                       ),
+                       SizedBox(height: AppSpacing.xxs),
+                       Text(
+-                        '�� App �����ߣ��µ��������ȡ�����Զ�ͬ��',
++                        '�����̳�ͬ����������ٷ� App �����¼���ܻ����˳�',
+                         style: TextStyle(
+                           fontSize: 12,
+                           color: AppColors.textSecondary,
+diff --git a/lib/ui/screens/pdd/pdd_web_screen.dart b/lib/ui/screens/pdd/pdd_web_screen.dart
+index aeea73e..080488d 100644
+--- a/lib/ui/screens/pdd/pdd_web_screen.dart
++++ b/lib/ui/screens/pdd/pdd_web_screen.dart
+@@ -2,7 +2,7 @@
+ ///
+ /// ���Ľ����
+ /// 1. ƴ��൥�豸�Ự����ʹ�㣺�û���ֱ���ڱ�Ӧ�������ƴ��������������µ����鿴������������
+-///    �������ֻ��ϰ�װ���ƴ���ٷ� App�����ױ���˫�˻��ߡ�
++///    �������ʹ����ڣ�����֤��ƴ���ٷ� App ͬʱ���ֵ�¼��
+ /// 2. �Զ�������ͬ���������ⲿ App Scheme�����ֵ�¼̬�־û����ڽ��붩�����Ļ���ͬ��ʱ
+ ///    �Զ��ۺ���;������ȡ������Ӧ����ҳ��
+ library;
+@@ -170,18 +170,10 @@ class _PddWebScreenState extends ConsumerState<PddWebScreen>
+             final url = request.url;
+             final lower = url.toLowerCase();
+ 
+-            // 1. ���ػ���ƴ���ٷ� App����ֹ�����ͻ��ߣ�
++            // Ask before leaving the embedded store. Opening the official app
++            // does not transfer its authentication back into this WebView.
+             if (lower.startsWith('pinduoduo://') || lower.startsWith('pddopen://')) {
+-              debugPrint('[PddWeb] Prevent external pdd scheme: $url');
+-              if (mounted) {
+-                ScaffoldMessenger.of(context).showSnackBar(
+-                  const SnackBar(
+-                    content: Text('��Ϊ��ͣ����������ҳ�棬���ܹٷ� App �����뻥��'),
+-                    duration: Duration(seconds: 2),
+-                    behavior: SnackBarBehavior.floating,
+-                  ),
+-                );
+-              }
++              _offerOpenPddApp(url);
+               return NavigationDecision.prevent;
+             }
+ 
+@@ -224,6 +216,11 @@ class _PddWebScreenState extends ConsumerState<PddWebScreen>
+             if (lower.startsWith('intent://') || lower.startsWith('intent:')) {
+               final parsed = PddWebScreen.parseIntentUrl(url);
+               if (parsed != null && parsed.isNotEmpty) {
++                final scheme = Uri.tryParse(parsed)?.scheme.toLowerCase();
++                if (scheme == 'pinduoduo' || scheme == 'pddopen') {
++                  _offerOpenPddApp(parsed);
++                  return NavigationDecision.prevent;
++                }
+                 debugPrint('[PddWeb] Resolved intent to external scheme: $parsed');
+                 final isAlipay = parsed.toLowerCase().startsWith('alipay');
+                 final isWechat = parsed.toLowerCase().startsWith('weixin');
+@@ -736,6 +733,38 @@ class _PddWebScreenState extends ConsumerState<PddWebScreen>
+     return _isTrustedPddHost(uri.host);
+   }
+ 
++  /// Keep external launch user-initiated, including redirects that arrive
++  /// automatically. Never log the URL because it may carry login parameters.
++  void _offerOpenPddApp(String url) {
++    if (!mounted) return;
++    final uri = Uri.tryParse(url);
++    if (uri == null || !{'pinduoduo', 'pddopen'}.contains(uri.scheme.toLowerCase())) {
++      return;
++    }
++    final messenger = ScaffoldMessenger.of(context);
++    messenger.hideCurrentSnackBar();
++    messenger.showSnackBar(SnackBar(
++      content: const Text('��ҳ�����ƴ��ࡣ�� App ����������Ȩ������ֵ�¼��'),
++      duration: const Duration(seconds: 12),
++      action: SnackBarAction(
++        label: '�� App',
++        onPressed: () async {
++          var launched = false;
++          try {
++            launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
++          } catch (_) {
++            // Show an actionable message without exposing the redirect URL.
++          }
++          if (!launched && mounted) {
++            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
++              content: Text('�޷���ƴ��࣬��ȷ���Ѱ�װ����ֱ�Ӵ�����򿪡�'),
++            ));
++          }
++        },
++      ),
++    ));
++  }
++
+   /// ���𱾵�֧��������΢�š�֧������������������ǵȴ�����
+   Future<void> _launchExternalPay(String url, {required String paymentName}) async {
+     try {
+diff --git a/lib/ui/screens/settings/settings_screen.dart b/lib/ui/screens/settings/settings_screen.dart
+index adcaa75..67344ec 100644
+--- a/lib/ui/screens/settings/settings_screen.dart
++++ b/lib/ui/screens/settings/settings_screen.dart
+@@ -12,6 +12,7 @@ import '../../components/platform_meta.dart';
+ import '../../providers/package_provider.dart';
+ import '../../providers/platform_auth_status_provider.dart';
+ import '../login/platform_login_flow.dart';
++import '../login/order_entry_test_screen.dart';
+ import 'background_sync_test_screen.dart';
+ import 'keep_alive_status_screen.dart';
+ import 'pickup_point_merge_screen.dart';
+@@ -56,6 +57,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+ 
+           const SizedBox(height: 28),
+ 
++          _buildSectionHeader('��ƽ̨����ҳ����', '����֤��ҳ�ܷ���ʾ�������ݲ��Զ��������'),
++          const SizedBox(height: 10),
++          for (final name in orderEntryTestUrls.keys)
++            Card(
++              child: ListTile(
++                title: Text('$name����ҳ�����ԣ�'),
++                trailing: const Icon(Icons.chevron_right_rounded),
++                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
++                  builder: (_) => OrderEntryTestScreen(platformName: name),
++                )),
++              ),
++            ),
++          const SizedBox(height: 28),
++
+           // ���� Section 2: ȡ���㣨P28-d��������������������������������������������
+           _buildSectionHeader('ȡ����', 'ͬ�ص����ʱ�ɺϲ�Ϊһ��'),
+           const SizedBox(height: 10),
+diff --git a/pubspec.lock b/pubspec.lock
+index dfd0868..a0a0346 100644
+--- a/pubspec.lock
++++ b/pubspec.lock
+@@ -468,10 +468,10 @@ packages:
+     dependency: transitive
+     description:
+       name: matcher
+-      sha256: "31bd099b47c10cd1aeb55146a2d46ce0277630ecef3f7dae54ad7873f36696cd"
++      sha256: dc0b7dc7651697ea4ff3e69ef44b0407ea32c487a39fff6a4004fa585e901861
+       url: "https://pub.dev"
+     source: hosted
+-    version: "0.12.20"
++    version: "0.12.19"
+   material_color_utilities:
+     dependency: transitive
+     description:
+@@ -484,10 +484,10 @@ packages:
+     dependency: transitive
+     description:
+       name: meta
+-      sha256: "307249ce4ff29d58a18e97f6345f539382eb9c9c29ecda628900f31de0443dd9"
++      sha256: "1741988757a65eb6b36abe716829688cf01910bbf91c34354ff7ec1c3de2b349"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "1.19.0"
++    version: "1.18.0"
+   mime:
+     dependency: transitive
+     description:
+@@ -736,10 +736,10 @@ packages:
+     dependency: transitive
+     description:
+       name: test_api
+-      sha256: "2a122cbe059f8b610d3a5415f42e255b6c17b1f21eee1d960f31080237fb4f11"
++      sha256: "949a932224383300f01be9221c39180316445ecb8e7547f70a41a35bf421fb9e"
+       url: "https://pub.dev"
+     source: hosted
+-    version: "0.7.12"
++    version: "0.7.11"
+   timezone:
+     dependency: "direct main"
+     description:
+@@ -840,10 +840,10 @@ packages:
+     dependency: transitive
+     description:
+       name: vector_math
+-      sha256: "92b9910f66ed1057fd4da7b040ae7c74cafacf885bdc81be496928d5049b032d"
++      sha256: d530bd74fea330e6e364cda7a85019c434070188383e1cd8d9777ee586914c5b
+       url: "https://pub.dev"
+     source: hosted
+-    version: "2.4.3"
++    version: "2.2.0"
+   vm_service:
+     dependency: transitive
+     description:
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 7562806..c055bbd 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -1,7 +1,7 @@
+ name: pickup_app
+ description: iOS-style pickup management app
+ publish_to: 'none'
+-version: 1.0.0+4
++version: 1.0.1+5
+ 
+ environment:
+   sdk: ^3.6.0
+diff --git a/lib/ui/screens/login/order_entry_test_screen.dart b/lib/ui/screens/login/order_entry_test_screen.dart
+new file mode 100644
+--- /dev/null
++++ b/lib/ui/screens/login/order_entry_test_screen.dart
+@@ -0,0 +1,111 @@
++import 'package:flutter/material.dart';
++import 'package:flutter/services.dart';
++import 'package:webview_flutter/webview_flutter.dart';
++
++/// Publicly referenced buyer entry points. These are unverified on-device and
++/// deliberately do not register an authenticated connector or import packages.
++const orderEntryTestUrls = <String, String>{
++  'С����': 'https://www.xiaohongshu.com/order/list',
++};
++
++class OrderEntryTestScreen extends StatefulWidget {
++  final String platformName;
++  const OrderEntryTestScreen({super.key, required this.platformName});
++
++  @override
++  State<OrderEntryTestScreen> createState() => _OrderEntryTestScreenState();
++}
++
++class _OrderEntryTestScreenState extends State<OrderEntryTestScreen> {
++  late final WebViewController _controller;
++  late String _currentUrl;
++  int _progress = 0;
++  String? _message;
++
++  @override
++  void initState() {
++    super.initState();
++    _currentUrl = orderEntryTestUrls[widget.platformName]!;
++    _controller = WebViewController()
++      ..setJavaScriptMode(JavaScriptMode.unrestricted)
++      ..setNavigationDelegate(NavigationDelegate(
++        onProgress: (value) {
++          if (mounted) setState(() => _progress = value);
++        },
++        onUrlChange: (change) {
++          if (mounted && change.url != null) {
++            setState(() => _currentUrl = change.url!);
++          }
++        },
++        onNavigationRequest: (request) {
++          final uri = Uri.tryParse(request.url);
++          if (uri == null || !{'https', 'http'}.contains(uri.scheme)) {
++            if (mounted) {
++              setState(() => _message = 'ҳ��������ⲿ App����ͣ������ҳ������ڿ������� App��');
++            }
++            return NavigationDecision.prevent;
++          }
++          return NavigationDecision.navigate;
++        },
++        onWebResourceError: (error) {
++          if (mounted && error.isForMainFrame == true) {
++            setState(() => _message = 'ҳ�����ʧ�ܣ�${error.errorCode}������ˢ�����ԡ�');
++          }
++        },
++      ))
++      ..loadRequest(Uri.parse(_currentUrl));
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    return Scaffold(
++      appBar: AppBar(
++        title: Text('${widget.platformName}����ҳ����'),
++        actions: [
++          IconButton(
++            tooltip: '���Ƶ�ǰ��ַ',
++            icon: const Icon(Icons.link),
++            onPressed: () async {
++              // The current address may contain account-specific query values;
++              // copy only on an explicit user action, never log or upload it.
++              await Clipboard.setData(ClipboardData(text: _currentUrl));
++              if (context.mounted) {
++                ScaffoldMessenger.of(context).showSnackBar(
++                  const SnackBar(content: Text('�Ѹ�����ַ������ǰ���Ƴ���¼ƾ�ݵ�˽�˲���')),
++                );
++              }
++            },
++          ),
++          IconButton(
++            tooltip: 'ˢ��',
++            icon: const Icon(Icons.refresh),
++            onPressed: () {
++              setState(() => _message = null);
++              _controller.reload();
++            },
++          ),
++        ],
++      ),
++      body: Column(children: [
++        const Padding(
++          padding: EdgeInsets.all(12),
++          child: Text('������ڣ������е�¼������ܷ���ʾ�������������ݲ��Զ����������'),
++        ),
++        if (_message != null)
++          Padding(padding: const EdgeInsets.all(12), child: Text(_message!)),
++        if (_progress < 100) LinearProgressIndicator(value: _progress / 100),
++        Expanded(child: WebViewWidget(controller: _controller)),
++        SafeArea(
++          top: false,
++          child: TextButton.icon(
++            icon: const Icon(Icons.arrow_back),
++            label: const Text('��ҳ�ڷ���'),
++            onPressed: () async {
++              if (await _controller.canGoBack()) await _controller.goBack();
++            },
++          ),
++        ),
++      ]),
++    );
++  }
++}
+diff --git a/docs/order-entry-test.md b/docs/order-entry-test.md
+new file mode 100644
+--- /dev/null
++++ b/docs/order-entry-test.md
+@@ -0,0 +1,42 @@
++# ������С���鶩��ҳ����
++
++���ν����ӡ�������ƽ̨�� �� ��ƽ̨����ҳ���ԡ�����������ҳ��ڡ�
++δʵ��������ƽ̨���Զ�����ͬ��������Ѵ�ҳ�浱�ɰ󶨳ɹ���
++����ȡ�򵼳� Cookie����ע��ű��ɼ�����������¼ҳ����ַ��WebView �����Կ��ڱ���������վ��¼״̬��
++�ⲿ App ��������ᱻ��ֹ������ʾ��ʾ�������ж���ҳ�Ƿ����� App��
++
++## ��Դ��״̬
++
++- С���飺`https://www.xiaohongshu.com/order/list`
++  - https://github.com/oneperson9804/Easy-pickup/blob/3037308f5ea4e8665db7980e81da8c13ea381069/assets/platforms.json
++  - ��һ�ݹ�����Ӧ������ `order_list_link` ͬ��ָ�� `/order/list`��������˽�˻Ự�������˸İ治ʹ�øò�����
++- �����̳ǣ�`https://haohuo.jinritemai.com/views/pages/index/order-list`
++  - https://github.com/On-aroll/pickup-code-launcher/blob/5bd6e215dca41739abdcf6952ceb0e5d922b8bc3/app/src/main/java/cn/pickup/launcher/Destination.java
++  - ֮ǰ�� `/views/order/list` ���û��ֻ�������Ч���ѻ�������д�ʵ��ĺ�ѡ��ַ��
++
++����������Դ���г��ֹ�����ڣ���������֤�ɶ���ʹ�õĹٷ���ҳ API��
++2026-10-27����δ��ʵ���˺š�OPPO Find X8 �ϲ��ԣ���ǰ����δ��װ Flutter����δ���롣
++
++## �ֻ���֤
++
++1. �򿪲�����ڣ��Լ������վ��¼��
++2. ����Ƿ��ܿ�����ʵ���ջ��б����ٴ�һ�ʶ����鿴������
++3. ��ֻ��ʾ����ҳ���հ�ҳ����ʾ�� App����¼�������Ҫ��������ɹ���
++4. ������ͼǰ�ڸ��������ֻ��š���ַ�������ź���֤�룻������ַǰɾ���Ự������
++
++## ƴ���˲�
++
++��ǰԴ��ʹ�� `https://mobile.yangkeduo.com/login.html` ��¼��
++�� `https://mobile.yangkeduo.com/orders.html` ͬ��������
++��¼������ͬ��������ʹ����ͬ User-Agent�����������ó־û���¼̬��
++�����ύ��¼��û���ҵ���֤�����������Ӽ��ɽ�����ߡ����޸���
++�û�����ġ���¼һ�˺���һ���˳�����Ự��ͻһ�£�������˵ľ����ж�������δ֤ʵ��
++����ԭƴ����ַ���������⻥�ߡ��Ĳ�ʵ��֤��
++ƴ���ֱ�� scheme �� Android Intent �н�������ƴ��� scheme ���ڻ���ʾ���� App����ť��
++�û������Ž���ϵͳ�򿪣�ʧ��ʱ��ʾ��ʾ�����پ�Ĭ��ֹ��������֧����ת������
++�˸Ķ����ܻ�ȡ�ٷ� App ��¼̬��Ҳδ����ֻ��ŵ�¼������һ���˳������⡣
++
++## Դ��
++
++���� Granter-z/parcly �� `0e4c7739205b368ab9bed3299f963a3e6fd9cf91`��
++����ԭ GPL-3.0 ����֤���˰�ΪԴ����Ըİ棬���� APK��
