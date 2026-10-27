@@ -2,13 +2,13 @@ diff --git a/README.md b/README.md
 index 442cd7f..907492e 100644
 --- a/README.md
 +++ b/README.md
-@@ -19,7 +19,7 @@ Parcly �ۺ�ƴ��ࡢ�������Ա� / ��è����ʵ�������ѡ���ȡ
+@@ -19,7 +19,7 @@ Parcly 聚合拼多多、京东、淘宝 / 天猫的真实物流，把「待取
  
- - **����ɢ���ƽ̨**��������ƴ��ࡢ�������Ա�������ȡ����Ҳɢ�ڸ��� App �
- - **վ��ǰ������**�����ĳ��������Ѿ�վ����վ / ��ݹ�ǰ����Ҫ���̿����룬��������ˢһ��������
--- **ƴ���˫�˻���**���ٷ� App ���������¼���׻��ߣ�Parcly ����ƴ����ƶ����̳ǣ��ɵ����ճ���ڣ��Ӹ����ƿ����ߡ�
-+- **ƴ���˫�˻���**�������̳ǿ���Ϊ�����ڣ���ٷ� App �����¼�Կ��ܵ�����һ���˳�������֤�����ͻ���ͬʱ���ߡ�
- - **�޹ض�������**�����������͡��˿�ȡ���Ȳ��������б���
+ - **包裹散落多平台**：购物在拼多多、京东、淘宝各处，取件码也散在各个 App 里。
+ - **站柜前找码慢**：核心场景是人已经站在驿站 / 快递柜前，需要立刻看到码，而不是再刷一遍物流。
+-- **拼多多双端互踢**：官方 App 与第三方登录容易互踢；Parcly 内置拼多多移动端商城，可当作日常入口，从根上绕开互踢。
++- **拼多多双端互踢**：内置商城可作为替代入口；与官方 App 交替登录仍可能导致另一端退出，不保证两个客户端同时在线。
+ - **无关订单干扰**：外卖、秒送、退款取消等不进包裹列表。
  
  ---
 diff --git a/android/app/build.gradle.kts b/android/app/build.gradle.kts
@@ -33,7 +33,7 @@ index 5785028..6fbef6c 100644
      <uses-permission android:name="android.permission.VIBRATE"/>
      <application
 -        android:label="pickup_app"
-+        android:label="Parcly ���԰�"
++        android:label="Parcly 测试版"
          android:name="${applicationName}"
          android:usesCleartextTraffic="true"
          android:allowBackup="false"
@@ -55,10 +55,10 @@ index 888fe2f..e36425e 100644
 +++ b/lib/ui/components/platform_meta.dart
 @@ -40,7 +40,7 @@ String platformSubtitle(String platform) {
      case 'jd':
-       return '֧����Ӫ���������������������;����';
+       return '支持自营物流、便民柜自提码与在途配送';
      case 'pdd':
--      return '���õ�¼��˫�˻��ߣ��Զ�ͬ����;������ȡ����';
-+      return '������ҳͬ������ƴ���ٷ� App �����¼���ܵ�����һ���˳�';
+-      return '内置登录免双端互踢，自动同步在途包裹与取件码';
++      return '内置网页同步；与拼多多官方 App 交替登录可能导致另一端退出';
      default:
        return '';
    }
@@ -70,8 +70,8 @@ index 35026b1..7defcfd 100644
                        ),
                        SizedBox(height: AppSpacing.xxs),
                        Text(
--                        '�� App �����ߣ��µ��������ȡ�����Զ�ͬ��',
-+                        '�����̳�ͬ����������ٷ� App �����¼���ܻ����˳�',
+-                        '免 App 防互踢，下单后包裹与取件码自动同步',
++                        '内置商城同步包裹；与官方 App 交替登录可能互相退出',
                          style: TextStyle(
                            fontSize: 12,
                            color: AppColors.textSecondary,
@@ -81,18 +81,18 @@ index aeea73e..080488d 100644
 +++ b/lib/ui/screens/pdd/pdd_web_screen.dart
 @@ -2,7 +2,7 @@
  ///
- /// ���Ľ����
- /// 1. ƴ��൥�豸�Ự����ʹ�㣺�û���ֱ���ڱ�Ӧ�������ƴ��������������µ����鿴������������
--///    �������ֻ��ϰ�װ���ƴ���ٷ� App�����ױ���˫�˻��ߡ�
-+///    �������ʹ����ڣ�����֤��ƴ���ٷ� App ͬʱ���ֵ�¼��
- /// 2. �Զ�������ͬ���������ⲿ App Scheme�����ֵ�¼̬�־û����ڽ��붩�����Ļ���ͬ��ʱ
- ///    �Զ��ۺ���;������ȡ������Ӧ����ҳ��
+ /// 核心解决：
+ /// 1. 拼多多单设备会话互踢痛点：用户可直接在本应用内完成拼多多的完整浏览、下单、查看订单与物流；
+-///    无需在手机上安装或打开拼多多官方 App，彻底避免双端互踢。
++///    这是替代使用入口，不保证与拼多多官方 App 同时保持登录。
+ /// 2. 自动化物流同步：拦截外部 App Scheme，保持登录态持久化，在进入订单中心或点击同步时
+ ///    自动聚合在途包裹与取件码至应用主页。
  library;
 @@ -170,18 +170,10 @@ class _PddWebScreenState extends ConsumerState<PddWebScreen>
              final url = request.url;
              final lower = url.toLowerCase();
  
--            // 1. ���ػ���ƴ���ٷ� App����ֹ�����ͻ��ߣ�
+-            // 1. 拦截唤起拼多多官方 App（防止跳出和互踢）
 +            // Ask before leaving the embedded store. Opening the official app
 +            // does not transfer its authentication back into this WebView.
              if (lower.startsWith('pinduoduo://') || lower.startsWith('pddopen://')) {
@@ -100,7 +100,7 @@ index aeea73e..080488d 100644
 -              if (mounted) {
 -                ScaffoldMessenger.of(context).showSnackBar(
 -                  const SnackBar(
--                    content: Text('��Ϊ��ͣ����������ҳ�棬���ܹٷ� App �����뻥��'),
+-                    content: Text('已为您停留在内置网页版，免受官方 App 打扰与互踢'),
 -                    duration: Duration(seconds: 2),
 -                    behavior: SnackBarBehavior.floating,
 -                  ),
@@ -137,10 +137,10 @@ index aeea73e..080488d 100644
 +    final messenger = ScaffoldMessenger.of(context);
 +    messenger.hideCurrentSnackBar();
 +    messenger.showSnackBar(SnackBar(
-+      content: const Text('��ҳ�����ƴ��ࡣ�� App ����������Ȩ������ֵ�¼��'),
++      content: const Text('网页请求打开拼多多。打开 App 不代表已授权快递助手登录。'),
 +      duration: const Duration(seconds: 12),
 +      action: SnackBarAction(
-+        label: '�� App',
++        label: '打开 App',
 +        onPressed: () async {
 +          var launched = false;
 +          try {
@@ -150,7 +150,7 @@ index aeea73e..080488d 100644
 +          }
 +          if (!launched && mounted) {
 +            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-+              content: Text('�޷���ƴ��࣬��ȷ���Ѱ�װ����ֱ�Ӵ�����򿪡�'),
++              content: Text('无法打开拼多多，请确认已安装，或直接从桌面打开。'),
 +            ));
 +          }
 +        },
@@ -158,7 +158,7 @@ index aeea73e..080488d 100644
 +    ));
 +  }
 +
-   /// ���𱾵�֧��������΢�š�֧������������������ǵȴ�����
+   /// 唤起本地支付软件（微信、支付宝、云闪付）并标记等待返回
    Future<void> _launchExternalPay(String url, {required String paymentName}) async {
      try {
 diff --git a/lib/ui/screens/settings/settings_screen.dart b/lib/ui/screens/settings/settings_screen.dart
@@ -177,12 +177,12 @@ index adcaa75..67344ec 100644
  
            const SizedBox(height: 28),
  
-+          _buildSectionHeader('��ƽ̨����ҳ����', '����֤��ҳ�ܷ���ʾ�������ݲ��Զ��������'),
++          _buildSectionHeader('新平台订单页测试', '先验证网页能否显示订单；暂不自动导入包裹'),
 +          const SizedBox(height: 10),
 +          for (final name in orderEntryTestUrls.keys)
 +            Card(
 +              child: ListTile(
-+                title: Text('$name����ҳ�����ԣ�'),
++                title: Text('$name订单页（测试）'),
 +                trailing: const Icon(Icons.chevron_right_rounded),
 +                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
 +                  builder: (_) => OrderEntryTestScreen(platformName: name),
@@ -191,8 +191,8 @@ index adcaa75..67344ec 100644
 +            ),
 +          const SizedBox(height: 28),
 +
-           // ���� Section 2: ȡ���㣨P28-d��������������������������������������������
-           _buildSectionHeader('ȡ����', 'ͬ�ص����ʱ�ɺϲ�Ϊһ��'),
+           // ── Section 2: 取件点（P28-d）─────────────────────
+           _buildSectionHeader('取件点', '同地点多名时可合并为一组'),
            const SizedBox(height: 10),
 diff --git a/pubspec.lock b/pubspec.lock
 index dfd0868..a0a0346 100644
@@ -275,7 +275,7 @@ new file mode 100644
 +/// Publicly referenced buyer entry points. These are unverified on-device and
 +/// deliberately do not register an authenticated connector or import packages.
 +const orderEntryTestUrls = <String, String>{
-+  'С����': 'https://www.xiaohongshu.com/order/list',
++  '小红书': 'https://www.xiaohongshu.com/order/list',
 +};
 +
 +class OrderEntryTestScreen extends StatefulWidget {
@@ -311,7 +311,7 @@ new file mode 100644
 +          final uri = Uri.tryParse(request.url);
 +          if (uri == null || !{'https', 'http'}.contains(uri.scheme)) {
 +            if (mounted) {
-+              setState(() => _message = 'ҳ��������ⲿ App����ͣ������ҳ������ڿ������� App��');
++              setState(() => _message = '页面请求打开外部 App，已停留在网页。此入口可能依赖 App。');
 +            }
 +            return NavigationDecision.prevent;
 +          }
@@ -319,7 +319,7 @@ new file mode 100644
 +        },
 +        onWebResourceError: (error) {
 +          if (mounted && error.isForMainFrame == true) {
-+            setState(() => _message = 'ҳ�����ʧ�ܣ�${error.errorCode}������ˢ�����ԡ�');
++            setState(() => _message = '页面加载失败（${error.errorCode}），可刷新重试。');
 +          }
 +        },
 +      ))
@@ -330,10 +330,10 @@ new file mode 100644
 +  Widget build(BuildContext context) {
 +    return Scaffold(
 +      appBar: AppBar(
-+        title: Text('${widget.platformName}����ҳ����'),
++        title: Text('${widget.platformName}订单页测试'),
 +        actions: [
 +          IconButton(
-+            tooltip: '���Ƶ�ǰ��ַ',
++            tooltip: '复制当前网址',
 +            icon: const Icon(Icons.link),
 +            onPressed: () async {
 +              // The current address may contain account-specific query values;
@@ -341,13 +341,13 @@ new file mode 100644
 +              await Clipboard.setData(ClipboardData(text: _currentUrl));
 +              if (context.mounted) {
 +                ScaffoldMessenger.of(context).showSnackBar(
-+                  const SnackBar(content: Text('�Ѹ�����ַ������ǰ���Ƴ���¼ƾ�ݵ�˽�˲���')),
++                  const SnackBar(content: Text('已复制网址；分享前请移除登录凭据等私人参数')),
 +                );
 +              }
 +            },
 +          ),
 +          IconButton(
-+            tooltip: 'ˢ��',
++            tooltip: '刷新',
 +            icon: const Icon(Icons.refresh),
 +            onPressed: () {
 +              setState(() => _message = null);
@@ -359,7 +359,7 @@ new file mode 100644
 +      body: Column(children: [
 +        const Padding(
 +          padding: EdgeInsets.all(12),
-+          child: Text('������ڣ������е�¼������ܷ���ʾ�������������ݲ��Զ����������'),
++          child: Text('测试入口：请自行登录，检查能否显示订单和物流。暂不自动导入包裹。'),
 +        ),
 +        if (_message != null)
 +          Padding(padding: const EdgeInsets.all(12), child: Text(_message!)),
@@ -369,7 +369,7 @@ new file mode 100644
 +          top: false,
 +          child: TextButton.icon(
 +            icon: const Icon(Icons.arrow_back),
-+            label: const Text('��ҳ�ڷ���'),
++            label: const Text('网页内返回'),
 +            onPressed: () async {
 +              if (await _controller.canGoBack()) await _controller.goBack();
 +            },
@@ -384,45 +384,45 @@ new file mode 100644
 --- /dev/null
 +++ b/docs/order-entry-test.md
 @@ -0,0 +1,42 @@
-+# ������С���鶩��ҳ����
++# 抖音与小红书订单页测试
 +
-+���ν����ӡ�������ƽ̨�� �� ��ƽ̨����ҳ���ԡ�����������ҳ��ڡ�
-+δʵ��������ƽ̨���Զ�����ͬ��������Ѵ�ҳ�浱�ɰ󶨳ɹ���
-+����ȡ�򵼳� Cookie����ע��ű��ɼ�����������¼ҳ����ַ��WebView �����Կ��ڱ���������վ��¼״̬��
-+�ⲿ App ��������ᱻ��ֹ������ʾ��ʾ�������ж���ҳ�Ƿ����� App��
++本次仅增加「设置与平台绑定 → 新平台订单页测试」两个内置网页入口。
++未实现这两个平台的自动包裹同步，不会把打开页面当成绑定成功。
++不读取或导出 Cookie，不注入脚本采集订单，不记录页面网址；WebView 本身仍可在本机保存网站登录状态。
++外部 App 唤起请求会被阻止，并显示提示，便于判断网页是否依赖 App。
 +
-+## ��Դ��״̬
++## 来源与状态
 +
-+- С���飺`https://www.xiaohongshu.com/order/list`
++- 小红书：`https://www.xiaohongshu.com/order/list`
 +  - https://github.com/oneperson9804/Easy-pickup/blob/3037308f5ea4e8665db7980e81da8c13ea381069/assets/platforms.json
-+  - ��һ�ݹ�����Ӧ������ `order_list_link` ͬ��ָ�� `/order/list`��������˽�˻Ự�������˸İ治ʹ�øò�����
-+- �����̳ǣ�`https://haohuo.jinritemai.com/views/pages/index/order-list`
++  - 另一份公开响应样本的 `order_list_link` 同样指向 `/order/list`，但附带私人会话参数；此改版不使用该参数。
++- 抖音商城：`https://haohuo.jinritemai.com/views/pages/index/order-list`
 +  - https://github.com/On-aroll/pickup-code-launcher/blob/5bd6e215dca41739abdcf6952ceb0e5d922b8bc3/app/src/main/java/cn/pickup/launcher/Destination.java
-+  - ֮ǰ�� `/views/order/list` ���û��ֻ�������Ч���ѻ�������д�ʵ��ĺ�ѡ��ַ��
++  - 之前的 `/views/order/list` 经用户手机反馈无效，已换成这个尚待实测的候选地址。
 +
-+����������Դ���г��ֹ�����ڣ���������֤�ɶ���ʹ�õĹٷ���ҳ API��
-+2026-10-27����δ��ʵ���˺š�OPPO Find X8 �ϲ��ԣ���ǰ����δ��װ Flutter����δ���롣
++以上是社区源码中出现过的入口，不是已验证可独立使用的官方网页 API。
++2026-10-27：尚未在实际账号、OPPO Find X8 上测试，当前环境未安装 Flutter，尚未编译。
 +
-+## �ֻ���֤
++## 手机验证
 +
-+1. �򿪲�����ڣ��Լ������վ��¼��
-+2. ����Ƿ��ܿ�����ʵ���ջ��б����ٴ�һ�ʶ����鿴������
-+3. ��ֻ��ʾ����ҳ���հ�ҳ����ʾ�� App����¼�������Ҫ��������ɹ���
-+4. ������ͼǰ�ڸ��������ֻ��š���ַ�������ź���֤�룻������ַǰɾ���Ự������
++1. 打开测试入口，自己完成网站登录。
++2. 检查是否能看到真实待收货列表，再打开一笔订单查看物流。
++3. 若只显示下载页、空白页或提示打开 App，记录结果；不要当作接入成功。
++4. 分享截图前遮盖姓名、手机号、地址、订单号和验证码；分享网址前删除会话参数。
 +
-+## ƴ���˲�
++## 拼多多核查
 +
-+��ǰԴ��ʹ�� `https://mobile.yangkeduo.com/login.html` ��¼��
-+�� `https://mobile.yangkeduo.com/orders.html` ͬ��������
-+��¼������ͬ��������ʹ����ͬ User-Agent�����������ó־û���¼̬��
-+�����ύ��¼��û���ҵ���֤�����������Ӽ��ɽ�����ߡ����޸���
-+�û�����ġ���¼һ�˺���һ���˳�����Ự��ͻһ�£�������˵ľ����ж�������δ֤ʵ��
-+����ԭƴ����ַ���������⻥�ߡ��Ĳ�ʵ��֤��
-+ƴ���ֱ�� scheme �� Android Intent �н�������ƴ��� scheme ���ڻ���ʾ���� App����ť��
-+�û������Ž���ϵͳ�򿪣�ʧ��ʱ��ʾ��ʾ�����پ�Ĭ��ֹ��������֧����ת������
-+�˸Ķ����ܻ�ȡ�ٷ� App ��¼̬��Ҳδ����ֻ��ŵ�¼������һ���˳������⡣
++当前源码使用 `https://mobile.yangkeduo.com/login.html` 登录，
++用 `https://mobile.yangkeduo.com/orders.html` 同步订单。
++登录容器与同步连接器使用相同 User-Agent；连接器复用持久化登录态。
++上游提交记录中没有找到能证明“更换链接即可解决互踢”的修复。
++用户报告的“登录一端后另一端退出”与会话冲突一致，但服务端的具体判定机制仍未证实。
++保留原拼多多地址，修正“免互踢”的不实保证。
++拼多多直接 scheme 与 Android Intent 中解析出的拼多多 scheme 现在会显示“打开 App”按钮；
++用户点击后才交给系统打开，失败时显示提示，不再静默阻止或误送入支付跳转处理。
++此改动不能获取官方 App 登录态，也未解决手机号登录导致另一端退出的问题。
 +
-+## Դ��
++## 源码
 +
-+���� Granter-z/parcly �� `0e4c7739205b368ab9bed3299f963a3e6fd9cf91`��
-+����ԭ GPL-3.0 ����֤���˰�ΪԴ����Ըİ棬���� APK��
++基于 Granter-z/parcly 的 `0e4c7739205b368ab9bed3299f963a3e6fd9cf91`。
++保留原 GPL-3.0 许可证。此包为源码测试改版，不是 APK。
